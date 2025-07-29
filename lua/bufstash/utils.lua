@@ -1,4 +1,4 @@
----@class TaskerUtils
+---@class BufstashUtils
 local M = {}
 
 ---@param str string
@@ -18,7 +18,7 @@ function M.read_file(file_path)
   if not file then
     return nil
   end
-  
+
   local content = file:read("*a")
   file:close()
   return content
@@ -28,13 +28,30 @@ end
 ---@param content string
 ---@return boolean
 function M.write_file(file_path, content)
-  local file = io.open(file_path, "w")
+  -- Ensure parent directory exists
+  local parent_dir = vim.fn.fnamemodify(file_path, ":h")
+  if vim.fn.isdirectory(parent_dir) == 0 then
+    local ok = vim.fn.mkdir(parent_dir, "p")
+    if ok == 0 then
+      vim.notify("Failed to create directory: " .. parent_dir, vim.log.levels.ERROR)
+      return false
+    end
+  end
+
+  local file, err = io.open(file_path, "w")
   if not file then
+    vim.notify("Failed to open file for writing: " .. file_path .. " - " .. (err or "unknown error"), vim.log.levels.ERROR)
     return false
   end
-  
-  file:write(content)
+
+  local success, write_err = pcall(file.write, file, content)
   file:close()
+
+  if not success then
+    vim.notify("Failed to write content to file: " .. file_path .. " - " .. (write_err or "unknown error"), vim.log.levels.ERROR)
+    return false
+  end
+
   return true
 end
 
