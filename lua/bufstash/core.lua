@@ -68,6 +68,79 @@ function M.create_stash_given_table(name, stashes)
   return stashes
 end
 
+function M.hide_non_stash_buffers()
+  ensure_initialized()
+  
+  if not state.current_stash then
+    vim.notify("No stash selected", vim.log.levels.ERROR)
+    return
+  end
+  
+  local cwd = vim.fn.getcwd()
+  local stashes = data.get_stashes(cwd)
+  local stash = stashes[state.current_stash]
+  
+  if not stash then
+    vim.notify("Current stash no longer exists", vim.log.levels.ERROR)
+    state.current_stash = nil
+    return
+  end
+  
+  -- Get all stash buffer paths for quick lookup
+  local stash_paths = {}
+  if stash.bufs then
+    for _, buf in ipairs(stash.bufs) do
+      stash_paths[buf.path] = true
+    end
+  end
+  
+  local hidden_count = 0
+  local buffers = vim.api.nvim_list_bufs()
+  
+  for _, buf in ipairs(buffers) do
+    if vim.api.nvim_buf_is_loaded(buf) and vim.api.nvim_get_option_value("buflisted", {buf = buf}) then
+      local buf_name = vim.api.nvim_buf_get_name(buf)
+      if buf_name ~= "" then
+        local abs_path = vim.fn.fnamemodify(buf_name, ":p")
+        -- If this buffer is not in the current stash, hide it
+        if not stash_paths[abs_path] then
+          vim.api.nvim_set_option_value("buflisted", false, {buf = buf})
+          hidden_count = hidden_count + 1
+        end
+      end
+    end
+  end
+  
+  if hidden_count > 0 then
+    vim.notify("Hidden " .. hidden_count .. " buffers not in stash: " .. state.current_stash)
+  else
+    vim.notify("No buffers to hide (all open buffers are in current stash)")
+  end
+end
+
+function M.show_all_buffers()
+  ensure_initialized()
+  
+  local shown_count = 0
+  local buffers = vim.api.nvim_list_bufs()
+  
+  for _, buf in ipairs(buffers) do
+    if vim.api.nvim_buf_is_loaded(buf) and not vim.api.nvim_get_option_value("buflisted", {buf = buf}) then
+      local buf_name = vim.api.nvim_buf_get_name(buf)
+      if buf_name ~= "" and vim.fn.filereadable(buf_name) == 1 then
+        vim.api.nvim_set_option_value("buflisted", true, {buf = buf})
+        shown_count = shown_count + 1
+      end
+    end
+  end
+  
+  if shown_count > 0 then
+    vim.notify("Showed " .. shown_count .. " hidden buffers")
+  else
+    vim.notify("No hidden buffers to show")
+  end
+end
+
 ---@param name string
 function M.select_stash(name)
   ensure_initialized()
@@ -81,7 +154,33 @@ function M.select_stash(name)
   end
 
   state.current_stash = name
-  vim.notify("Selected stash: " .. name)
+  local stash = stashes[name]
+  
+  -- Hide all non-stash buffers first
+  M.hide_non_stash_buffers()
+  
+  -- Open all buffers in the selected stash
+  if stash and stash.bufs and #stash.bufs > 0 then
+    local opened_count = 0
+    local last_opened = nil
+    
+    for _, buf in ipairs(stash.bufs) do
+      if vim.fn.filereadable(buf.path) == 1 then
+        vim.cmd("edit " .. vim.fn.fnameescape(buf.path))
+        last_opened = buf.path
+        opened_count = opened_count + 1
+      end
+    end
+    
+    -- Focus on the last opened file
+    if last_opened then
+      vim.cmd("normal! zz")
+    end
+    
+    vim.notify("Selected stash: " .. name .. " (opened " .. opened_count .. " buffers)")
+  else
+    vim.notify("Selected stash: " .. name .. " (no buffers)")
+  end
 end
 
 ---@param name string

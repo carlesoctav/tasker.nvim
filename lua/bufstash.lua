@@ -32,6 +32,8 @@ M.delete_buf = bufstash.delete_buf
 M.toggle_buf_list = ui.toggle_buf_list
 M.pin_current_state = bufstash.pin_current_state
 M.select_all_buf = bufstash.select_all_buf
+M.hide_non_stash_buffers = bufstash.hide_non_stash_buffers
+M.show_all_buffers = bufstash.show_all_buffers
 
 M.get_current_stash = bufstash.get_current_stash
 M.get_stashes = bufstash.get_stashes

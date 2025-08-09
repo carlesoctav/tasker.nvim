@@ -88,3 +88,16 @@ vim.api.nvim_create_user_command("BufstashSelectAllBuf", function()
 end, {
   desc = "Open all buffers in the current stash",
 })
+
+vim.api.nvim_create_user_command("BufstashHideNonStashBuffers", function()
+  bufstash.hide_non_stash_buffers()
+end, {
+  desc = "Hide all buffers not in the current stash",
+})
+
+vim.api.nvim_create_user_command("BufstashShowAllBuffers", function()
+  bufstash.show_all_buffers()
+end, {
+  desc = "Show all hidden buffers",
+})
+

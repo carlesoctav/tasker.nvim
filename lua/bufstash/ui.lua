@@ -1,5 +1,6 @@
 local core = require("bufstash.core")
 local utils = require("bufstash.utils")
+local data = require("bufstash.data")
 
 ---@class BufstashUI
 local M = {}
