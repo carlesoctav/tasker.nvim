@@ -45,6 +45,10 @@ function M.create_stash(name)
   data.save_stashes(cwd, stashes)
 
   state.current_stash = name
+  
+  -- Hide all current buffers since the new stash is empty
+  M.hide_non_stash_buffers()
+  
   vim.notify("Created stash: " .. name)
 
 end
