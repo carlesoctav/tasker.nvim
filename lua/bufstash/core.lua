@@ -75,8 +75,26 @@ end
 function M.hide_non_stash_buffers()
   ensure_initialized()
   
+  local hidden_count = 0
+  local buffers = vim.api.nvim_list_bufs()
+  
+  -- If no stash is selected, hide all buffers
   if not state.current_stash then
-    vim.notify("No stash selected", vim.log.levels.ERROR)
+    for _, buf in ipairs(buffers) do
+      if vim.api.nvim_buf_is_loaded(buf) and vim.api.nvim_get_option_value("buflisted", {buf = buf}) then
+        local buf_name = vim.api.nvim_buf_get_name(buf)
+        if buf_name ~= "" then
+          vim.api.nvim_set_option_value("buflisted", false, {buf = buf})
+          hidden_count = hidden_count + 1
+        end
+      end
+    end
+    
+    if hidden_count > 0 then
+      vim.notify("Hidden " .. hidden_count .. " buffers (no stash selected)")
+    else
+      vim.notify("No buffers to hide")
+    end
     return
   end
   
@@ -97,9 +115,6 @@ function M.hide_non_stash_buffers()
       stash_paths[buf.path] = true
     end
   end
-  
-  local hidden_count = 0
-  local buffers = vim.api.nvim_list_bufs()
   
   for _, buf in ipairs(buffers) do
     if vim.api.nvim_buf_is_loaded(buf) and vim.api.nvim_get_option_value("buflisted", {buf = buf}) then
